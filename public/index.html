@@ -18,6 +18,12 @@
     .auth button { margin-top: 15px; padding: 11px 18px; border: 0; border-radius: 8px; background: #8ad8df; color: #101a28; font: inherit; font-weight: 700; cursor: pointer; }
     .auth button:disabled { opacity: .6; cursor: wait; }
     #auth-message { margin: 12px 0 0; font-size: 15px; white-space: pre-wrap; }
+    #editor { margin: 20px 0; padding: 18px; border: 1px solid #51667c; border-radius: 14px; background: #1a2a3d; }
+    #editor label { display: block; margin: 12px 0 5px; }
+    #editor input, #editor textarea { box-sizing: border-box; width: 100%; padding: 10px; border: 1px solid #8193a9; border-radius: 8px; background: #101a28; color: #ecf4ff; font: inherit; }
+    #editor button, .note-actions button { padding: 8px 13px; margin: 8px 8px 0 0; border: 1px solid #8193a9; border-radius: 8px; background: #283e55; color: #ecf4ff; cursor: pointer; }
+    #editor[hidden] { display: none; }
+    .note-actions { margin-top: 10px; }
     ul { list-style: none; display: grid; gap: 12px; padding: 0; }
     li { border: 1px solid #51667c; border-radius: 14px; padding: 17px 19px; background: #1a2a3d; }
     strong { display: block; font-size: 18px; margin-bottom: 5px; }
@@ -45,6 +51,16 @@
       </div>
       <p id="auth-message" role="status" aria-live="polite"></p>
     </section>
+    <form id="editor" hidden>
+      <h2 id="editor-heading">가상 메모 추가</h2>
+      <label for="note-title">제목</label>
+      <input id="note-title" maxlength="200" required>
+      <label for="note-body">내용</label>
+      <textarea id="note-body" rows="4" maxlength="10000" required></textarea>
+      <button type="submit" id="save-note">저장</button>
+      <button type="button" id="cancel-edit">취소</button>
+      <p id="editor-message" role="status" aria-live="polite"></p>
+    </form>
     <ul id="notes" aria-live="polite"><li>가상 자료를 불러오는 중입니다.</li></ul>
   </main>
   <script type="module">
@@ -59,13 +75,61 @@
     const authMessage = document.querySelector('#auth-message');
     const logoutButton = document.querySelector('#logout');
     let activeSession = null;
+    let editingId = null;
+    const editor = document.querySelector('#editor');
+    const editorHeading = document.querySelector('#editor-heading');
+    const editorMessage = document.querySelector('#editor-message');
+    const titleInput = document.querySelector('#note-title');
+    const bodyInput = document.querySelector('#note-body');
+    function startEdit(note = null) {
+      editingId = note?.id ?? null;
+      editorHeading.textContent = note ? '가상 메모 수정' : '가상 메모 추가';
+      titleInput.value = note?.title ?? '';
+      bodyInput.value = note?.body ?? '';
+      editorMessage.textContent = '';
+      titleInput.focus();
+    }
+    async function requestNotes(method, path, body) {
+      if (!activeSession) throw new Error('먼저 로그인해 주세요.');
+      const response = await fetch(path, {
+        method,
+        cache: 'no-store',
+        headers: {
+          Authorization: `Bearer ${activeSession.access_token}`,
+          ...(body ? { 'Content-Type': 'application/json' } : {})
+        },
+        ...(body ? { body: JSON.stringify(body) } : {})
+      });
+      if (!response.ok) throw new Error(response.status === 401 ? '로그인 확인 실패' : `요청 실패 (HTTP ${response.status})`);
+      return response.json();
+    }
+    editor.addEventListener('submit', async event => {
+      event.preventDefault();
+      const save = document.querySelector('#save-note');
+      save.disabled = true;
+      editorMessage.textContent = '저장 중...';
+      try {
+        const payload = { title: titleInput.value, body: bodyInput.value };
+        if (editingId) await requestNotes('PUT', `/api/notes/${editingId}`, payload);
+        else await requestNotes('POST', '/api/notes', payload);
+        startEdit();
+        editorMessage.textContent = '저장했습니다.';
+        await loadNotes(activeSession);
+      } catch (error) {
+        editorMessage.textContent = error.message;
+      } finally {
+        save.disabled = false;
+      }
+    });
+    document.querySelector('#cancel-edit').addEventListener('click', () => startEdit());
     const list = document.querySelector('#notes');
     let loadSequence = 0;
     async function loadNotes(session) {
       const sequence = ++loadSequence;
       list.replaceChildren(document.createElement('li'));
       list.firstChild.textContent = session ? '자료를 불러오는 중입니다.' : '로그인하면 자료를 볼 수 있습니다.';
-      if (!session) return;
+      editor.hidden = !session;
+      if (!session) { startEdit(); return; }
       try {
         const response = await fetch('/api/notes', {
           cache: 'no-store',
@@ -80,8 +144,29 @@
           const title = document.createElement('strong');
           const content = document.createElement('span');
           title.textContent = note.title;
-          content.textContent = note.content;
-          item.append(title, content);
+          content.textContent = note.body;
+          const actions = document.createElement('div');
+          actions.className = 'note-actions';
+          const edit = document.createElement('button');
+          edit.type = 'button';
+          edit.textContent = '수정';
+          edit.addEventListener('click', () => startEdit(note));
+          const remove = document.createElement('button');
+          remove.type = 'button';
+          remove.textContent = '삭제';
+          remove.addEventListener('click', async () => {
+            if (!confirm('이 가상 메모를 삭제할까요? 삭제 후 되돌릴 수 없습니다.')) return;
+            remove.disabled = true;
+            try {
+              await requestNotes('DELETE', `/api/notes/${note.id}`);
+              await loadNotes(activeSession);
+            } catch (error) {
+              authMessage.textContent = `삭제 실패: ${error.message}`;
+              remove.disabled = false;
+            }
+          });
+          actions.append(edit, remove);
+          item.append(title, content, actions);
           return item;
         }));
       } catch (error) {
