@@ -1,0 +1,4 @@
+{
+  "explanation": "2단계에서 가상 메모 네 건을 Supabase vault_notes로 이전했습니다. 브라우저는 Vercel /api/notes 서버 함수를 통해 메모를 읽으며 정적 data.json에는 메모를 두지 않습니다. API는 아직 공개 상태이고 과거 커밋 및 이전 배포의 노출은 해결되지 않았습니다.",
+  "blockedAt": null
+}
