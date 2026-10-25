@@ -1,5 +1,13 @@
 
 import { createClient } from '@supabase/supabase-js';
+import config from '../aleph.config.json' with { type: 'json' };
+import { createLoginVerifier } from '../src/verify-login.mjs';
+
+let verifier;
+function getVerifier(key) {
+  if (!verifier) verifier = createLoginVerifier({ config, supabaseSecretKey: key });
+  return verifier;
+}
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
@@ -17,6 +25,8 @@ export default async function handler(req, res) {
   }
 
   try {
+    const verified = await getVerifier(key)(req.headers.authorization);
+    if (!verified) return res.status(401).json({ error: 'Login required or invalid token' });
     const client = createClient(url, key, {
       auth: {
         persistSession: false,
