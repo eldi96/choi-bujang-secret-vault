@@ -1,4 +1,5 @@
+
 {
-  "explanation": "2단계에서 가상 메모 네 건을 Supabase vault_notes로 이전했습니다. 브라우저는 Vercel /api/notes 서버 함수를 통해 메모를 읽으며 정적 data.json에는 메모를 두지 않습니다. API는 아직 공개 상태이고 과거 커밋 및 이전 배포의 노출은 해결되지 않았습니다.",
+  "explanation": "3단계에서 Supabase Auth 로그인을 연결하고 서버에서 인증 토큰을 검증하도록 구현했습니다. 로그인한 사용자는 가상 메모를 추가·조회·수정·삭제할 수 있으며, 새 메모의 owner_id에는 서버가 검증한 사용자 ID를 저장합니다. 비로그인 GET /api/notes 요청은 실제 HTTP 점검에서 401로 차단되는 것을 확인했습니다. GET·POST·PUT·DELETE 경로를 allowedRoutes에 등록했습니다. 메모 소유자별 접근 제한은 4단계에서 구현할 예정이며, 공식 심판 통과 여부는 아직 확인되지 않았습니다.",
   "blockedAt": null
 }
