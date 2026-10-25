@@ -1,7 +1,7 @@
 // The student changes this check as each stage adds an attack to the same app.
 // Never return tokens, private keys, real names, or note bodies.
 export async function runAttackChecks(config) {
-  if (config.step !== 1) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
+  if (config.step !== 1 && config.step !== 2) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
   let app;
   try {
     app = new URL(config.publicAppUrl);
@@ -25,6 +25,10 @@ export async function runAttackChecks(config) {
     } catch {
       // A non-JSON response is a failed check, not a successful deployment.
     }
+  }
+  if (config.step === 2) {
+    return [{ attackId: 'public_static_notes', expected: '비로그인 /data.json에서 가상 메모가 노출되지 않음',
+      observed: visible ? '실패: 정적 메모 확인 표시가 노출됨' : response.ok ? '정적 메모 확인 표시 없음 (HTTP ' + response.status + ')' : '정적 자료 요청 실패 (HTTP ' + response.status + ')' }];
   }
   return [{ attackId: 'anonymous_note_read', expected: '비로그인 화면에서 가상 메모를 확인',
     observed: visible ? '비로그인 요청에서 공개 가상 메모 확인 표시가 보임' : `비로그인 요청에서 확인 표시가 보이지 않음 (HTTP ${response.status})` }];
