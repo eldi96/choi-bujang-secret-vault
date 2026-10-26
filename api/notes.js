@@ -43,12 +43,12 @@ export default async function handler(req, res) {
     const table = client.from('vault_notes');
 
     if (req.method === 'GET' && !noteId) {
-      const { data, error } = await table.select('public_id,title,content').order('id');
+      const { data, error } = await table.select('public_id,title,content').eq('owner_id', verified.userId).order('id');
       if (error) return sendDbError(res, error);
       return res.status(200).json({ notes: data.map(n => ({ id: n.public_id, title: n.title, body: n.content })) });
     }
     if (req.method === 'GET') {
-      const { data, error } = await table.select('public_id,title,content').eq('public_id', noteId).maybeSingle();
+      const { data, error } = await table.select('public_id,title,content').eq('public_id', noteId).eq('owner_id', verified.userId).maybeSingle();
       if (error) return sendDbError(res, error);
       if (!data) return res.status(404).json({ error: 'Note not found' });
       return res.status(200).json({ id: data.public_id, title: data.title, body: data.content });
@@ -79,16 +79,20 @@ export default async function handler(req, res) {
       if (!input || !validText(input.title, 200) || !validText(input.body, 10000)) {
         return res.status(400).json({ error: 'Invalid note' });
       }
-      // Stage 3 intentionally does not check ownership. Stage 4 must add it.
+      // The existing owner and the updated row must both remain the verified user.
+      if (Object.hasOwn(input, 'owner_id') || Object.hasOwn(input, 'ownerId')) {
+        return res.status(400).json({ error: 'Owner cannot be changed' });
+      }
       const { data, error } = await table.update({
         title: input.title, content: input.body
-      }).eq('public_id', noteId).select('public_id,title,content').maybeSingle();
+      }).eq('public_id', noteId).eq('owner_id', verified.userId)
+        .select('public_id,title,content,owner_id').maybeSingle();
       if (error) return sendDbError(res, error);
       if (!data) return res.status(404).json({ error: 'Note not found' });
+      if (data.owner_id !== verified.userId) return res.status(403).json({ error: 'Access denied' });
       return res.status(200).json({ id: data.public_id, title: data.title, body: data.content });
     }
-    // Stage 3 intentionally does not check ownership. Stage 4 must add it.
-    const { data, error } = await table.delete().eq('public_id', noteId).select('public_id').maybeSingle();
+    const { data, error } = await table.delete().eq('public_id', noteId).eq('owner_id', verified.userId).select('public_id').maybeSingle();
     if (error) return sendDbError(res, error);
     if (!data) return res.status(404).json({ error: 'Note not found' });
     return res.status(200).json({ id: data.public_id });
