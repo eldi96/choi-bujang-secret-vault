@@ -96,3 +96,18 @@
 1. 배포 사이트에서 A/B 계정으로 각각 로그인하여 본인 메모 목록과 시험용 메모 추가·수정·삭제를 확인합니다.
 2. 상대 계정 메모의 단건 조회·수정·삭제가 거부되는지 별도로 검사합니다. 미실행 결과를 성공으로 기록하지 않습니다.
 3. 로컬 저장소에서 `npm run bundle`을 실행하고 출력의 단계·커밋·점검 결과를 확인합니다. 공식 심판 판정은 별도로 확인합니다.
+
+## 5단계 저장점 (2026-10-26)
+
+- 메모 조회·추가·수정·삭제는 `api/notes.js` 서버 함수로 처리하며, Supabase Auth 로그인 확인과 검증된 사용자 ID 기반 `owner_id` 필터를 유지합니다. 서버 전용 Supabase 키는 브라우저에 노출하지 않습니다.
+- 학습 DB의 `public.vault_notes` 테이블에 한해 `PUBLIC`, `anon`, `authenticated` 직접 권한을 회수했습니다. 권한 재조회 결과 `anon` 및 `authenticated`의 SELECT·INSERT·UPDATE·DELETE는 모두 false, `service_role`의 네 권한은 모두 true였습니다. 다른 테이블은 변경하지 않았습니다.
+- 권한 회수 후 사용자 확인: 배포 화면에서 A 계정의 메모 조회·추가·수정·삭제가 정상 작동했습니다. 이는 사용자 화면 확인이며 자동화된 HTTP 검증은 아닙니다.
+- `aleph.config.json`의 `step`을 5로, `originalApiUrl`을 쿼리 없는 `https://sskbfouqhchnunyonhrj.supabase.co/rest/v1/vault_notes`로 설정했습니다. `judgeIssuer`, 로그인 발급자, 허용 경로, 서버 전용 설정은 유지합니다.
+- **미검증:** anon 키로 원본 HTTPS REST 경로에 직접 요청했을 때의 HTTP 차단 응답, 5단계 공식 심판 판정, 이번 커밋 기준 제출 묶음 실행 결과.
+
+### 5단계 재확인
+
+1. 배포 화면에서 A 계정으로 로그인한 뒤 시험용 메모 조회·추가·수정·삭제를 확인합니다. 기존 메모는 보존합니다.
+2. 승인된 학습 DB에서 `has_table_privilege`로 `anon`·`authenticated`의 네 CRUD 권한이 false이고 `service_role`은 true인지 조회합니다.
+3. 공개 가능한 anon 키로 원본 REST 경로를 읽기 전용 요청해 실제 차단 HTTP 응답을 확인합니다. 키는 Git·로그·제출 묶음에 기록하지 않습니다.
+4. 로컬 Git 저장소를 원격과 동기화하고 `git status`가 깨끗한지 확인한 다음 `npm run bundle`을 실행합니다. 생성되는 `artifacts/submission.json`은 커밋하지 않습니다. 자체 점검과 공식 심판 결과를 구분합니다.
