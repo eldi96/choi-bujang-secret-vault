@@ -1,7 +1,7 @@
 // The student changes this check as each stage adds an attack to the same app.
 // Never return tokens, private keys, real names, or note bodies.
 export async function runAttackChecks(config) {
-  if (![1, 2, 3, 4].includes(config.step)) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
+  if (![1, 2, 3, 4, 5].includes(config.step)) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
   let app;
   try {
     app = new URL(config.publicAppUrl);
@@ -13,7 +13,7 @@ export async function runAttackChecks(config) {
     throw new Error('aleph.config.json의 실제 배포 주소를 먼저 넣어 주세요.');
   }
   if (typeof config.sampleMarker !== 'string' || !config.sampleMarker) throw new Error('가상 메모의 확인 표시를 넣어 주세요.');
-  if (config.step === 3 || config.step === 4) {
+  if (config.step === 3 || config.step === 4 || config.step === 5) {
     let response;
     try {
       response = await fetch(new URL('/api/notes', app), {
@@ -44,7 +44,7 @@ export async function runAttackChecks(config) {
           ? '차단 실패: 비로그인 메모 목록 노출 (HTTP ' + response.status + ')'
           : '검증 불가 또는 계약 불일치: HTTP ' + response.status,
     }];
-    if (config.step === 4) {
+    if (config.step === 4 || config.step === 5) {
       let json = false;
       try {
         const body = await response.json();
