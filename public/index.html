@@ -84,9 +84,32 @@
       editorMessage.textContent = '';
       titleInput.focus();
     }
+    // A single in-flight refresh prevents refresh-token rotation races.
+    let sessionCheck = null;
+    async function ensureServerSession() {
+      if (!sessionCheck) {
+        sessionCheck = (async () => {
+          const response = await fetch('/api/auth', { cache: 'no-store' });
+          if (!response.ok) {
+            if (response.status === 401) showSession(null);
+            throw new Error(response.status === 401 ? '로그인이 만료됐습니다. 다시 로그인해 주세요.' : '인증 서버에 연결할 수 없습니다.');
+          }
+          return response.json();
+        })().finally(() => { sessionCheck = null; });
+      }
+      return sessionCheck;
+    }
+    async function authenticatedFetch(path, options = {}) {
+      let response = await fetch(path, options);
+      if (response.status !== 401 || !activeSession) return response;
+      await ensureServerSession();
+      // Retry only after a successful server-side session validation/refresh.
+      response = await fetch(path, options);
+      return response;
+    }
     async function requestNotes(method, path, body) {
       if (!activeSession) throw new Error('먼저 로그인해 주세요.');
-      const response = await fetch(path, {
+      const response = await authenticatedFetch(path, {
         method,
         cache: 'no-store',
         headers: {
@@ -125,7 +148,7 @@
       editor.hidden = !session;
       if (!session) { startEdit(); return; }
       try {
-        const response = await fetch('/api/notes', {
+        const response = await authenticatedFetch('/api/notes', {
           cache: 'no-store',
           headers: {}
         });
