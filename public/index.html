@@ -64,11 +64,6 @@
     <ul id="notes" aria-live="polite"><li>가상 자료를 불러오는 중입니다.</li></ul>
   </main>
   <script type="module">
-    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.117.2';
-    const supabase = createClient(
-      'https://sskbfouqhchnunyonhrj.supabase.co',
-      'sb_publishable_LstielBZHkz4OMNM1Qhwbg_1OqZCdA2'
-    );
     const loginForm = document.querySelector('#login-form');
     const signedIn = document.querySelector('#signed-in');
     const signedInEmail = document.querySelector('#signed-in-email');
@@ -89,13 +84,35 @@
       editorMessage.textContent = '';
       titleInput.focus();
     }
+    // A single in-flight refresh prevents refresh-token rotation races.
+    let sessionCheck = null;
+    async function ensureServerSession() {
+      if (!sessionCheck) {
+        sessionCheck = (async () => {
+          const response = await fetch('/api/auth', { cache: 'no-store' });
+          if (!response.ok) {
+            if (response.status === 401) showSession(null);
+            throw new Error(response.status === 401 ? '로그인이 만료됐습니다. 다시 로그인해 주세요.' : '인증 서버에 연결할 수 없습니다.');
+          }
+          return response.json();
+        })().finally(() => { sessionCheck = null; });
+      }
+      return sessionCheck;
+    }
+    async function authenticatedFetch(path, options = {}) {
+      let response = await fetch(path, options);
+      if (response.status !== 401 || !activeSession) return response;
+      await ensureServerSession();
+      // Retry only after a successful server-side session validation/refresh.
+      response = await fetch(path, options);
+      return response;
+    }
     async function requestNotes(method, path, body) {
       if (!activeSession) throw new Error('먼저 로그인해 주세요.');
-      const response = await fetch(path, {
+      const response = await authenticatedFetch(path, {
         method,
         cache: 'no-store',
         headers: {
-          Authorization: `Bearer ${activeSession.access_token}`,
           ...(body ? { 'Content-Type': 'application/json' } : {})
         },
         ...(body ? { body: JSON.stringify(body) } : {})
@@ -131,9 +148,9 @@
       editor.hidden = !session;
       if (!session) { startEdit(); return; }
       try {
-        const response = await fetch('/api/notes', {
+        const response = await authenticatedFetch('/api/notes', {
           cache: 'no-store',
-          headers: { Authorization: `Bearer ${session.access_token}` }
+          headers: {}
         });
         if (!response.ok) throw new Error(response.status === 401 ? '로그인 확인에 실패했습니다. 다시 로그인해 주세요.' : '자료를 읽을 수 없습니다.');
         const data = await response.json();
@@ -179,10 +196,10 @@
     function showSession(session) {
       activeSession = session;
       void loadNotes(session);
-      const loggedIn = Boolean(session?.user);
+      const loggedIn = Boolean(session);
       loginForm.hidden = loggedIn;
       signedIn.hidden = !loggedIn;
-      signedInEmail.textContent = loggedIn ? `로그인 계정: ${session.user.email ?? '이메일 없음'}` : '';
+      signedInEmail.textContent = loggedIn ? `로그인 계정: ${session.email ?? '이메일 없음'}` : '';
       if (loggedIn) document.querySelector('#password').value = '';
     }
     loginForm.addEventListener('submit', async event => {
@@ -191,12 +208,13 @@
       button.disabled = true;
       authMessage.textContent = '로그인 확인 중...';
       try {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: document.querySelector('#email').value.trim(),
-          password: document.querySelector('#password').value
+        const response = await fetch('/api/auth', {
+          method: 'POST', cache: 'no-store',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: document.querySelector('#email').value.trim(), password: document.querySelector('#password').value })
         });
-        if (error) throw error;
-        showSession(data.session);
+        if (!response.ok) throw new Error('아이디 또는 비밀번호를 확인해 주세요.');
+        showSession(await response.json());
         authMessage.textContent = '로그인에 성공했습니다.';
       } catch (error) {
         authMessage.textContent = `로그인 실패: ${error.message ?? '다시 시도해 주세요.'}`;
@@ -208,8 +226,8 @@
       logoutButton.disabled = true;
       authMessage.textContent = '로그아웃 중...';
       try {
-        const { error } = await supabase.auth.signOut();
-        if (error) throw error;
+        const response = await fetch('/api/auth', { method: 'DELETE', cache: 'no-store' });
+        if (!response.ok) throw new Error('로그아웃 요청에 실패했습니다.');
         showSession(null);
         authMessage.textContent = '로그아웃했습니다.';
       } catch (error) {
@@ -218,14 +236,13 @@
         logoutButton.disabled = false;
       }
     });
-    supabase.auth.onAuthStateChange((_event, session) => {
-      showSession(session);
-    });
     try {
-      const { data, error } = await supabase.auth.getSession();
-      if (error) throw error;
-      showSession(data.session);
+      const response = await fetch('/api/auth', { cache: 'no-store' });
+      if (response.ok) showSession(await response.json());
+      else if (response.status === 401) showSession(null);
+      else throw new Error(`HTTP ${response.status}`);
     } catch (error) {
+      showSession(null);
       authMessage.textContent = `로그인 상태 확인 실패: ${error.message ?? '다시 시도해 주세요.'}`;
     }
   </script>

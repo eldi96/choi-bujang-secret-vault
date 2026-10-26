@@ -3,6 +3,17 @@ import { createClient } from '@supabase/supabase-js';
 import config from '../aleph.config.json' with { type: 'json' };
 import { createLoginVerifier } from '../src/verify-login.mjs';
 
+const COOKIE = '__Host-aleph_access';
+function cookieToken(req) {
+  const part = (req.headers.cookie || '').split(';').map(x => x.trim()).find(x => x.startsWith(COOKIE + '='));
+  if (!part) return null;
+  try { return decodeURIComponent(part.slice(COOKIE.length + 1)); } catch { return null; }
+}
+function sameOrigin(req) {
+  const origin = req.headers.origin;
+  if (typeof origin !== 'string' || !req.headers.host) return false;
+  try { const u = new URL(origin); return u.protocol === 'https:' && u.host === req.headers.host; } catch { return false; }
+}
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 let verifier;
 function getVerifier(key) {
@@ -30,7 +41,12 @@ export default async function handler(req, res) {
   if (!url || !key) return res.status(503).json({ error: 'Server not configured' });
 
   try {
-    const verified = await getVerifier(key)(req.headers.authorization);
+    const browserToken = cookieToken(req);
+    if (browserToken && req.method !== 'GET' && !sameOrigin(req)) {
+      return res.status(403).json({ error: 'Origin denied' });
+    }
+    const authorization = req.headers.authorization || (browserToken ? `Bearer ${browserToken}` : null);
+    const verified = await getVerifier(key)(authorization);
     if (!verified) return res.status(401).json({ error: 'Login required or invalid token' });
     const client = createClient(url, key, {
       auth: { persistSession: false, autoRefreshToken: false }
