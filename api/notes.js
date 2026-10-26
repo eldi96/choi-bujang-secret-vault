@@ -62,7 +62,7 @@ export default async function handler(req, res) {
       const id = input.id ?? randomUUID();
       // The starter table has a bigint primary key without an auto-number default.
       // Assign a cryptographically random safe integer; never alter existing IDs.
-      const legacyId = randomInt(1_000_000_000, Number.MAX_SAFE_INTEGER);
+      const legacyId = randomInt(1_000_000_000, 2 ** 48 - 1);
       const { error } = await table.insert({
         id: legacyId, public_id: id, title: input.title,
         content: input.body, owner_id: verified.userId
