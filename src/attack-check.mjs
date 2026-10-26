@@ -62,7 +62,7 @@ export async function runAttackChecks(config) {
           const r = await fetch(new URL(path, app), { redirect: 'error', signal: AbortSignal.timeout(10000) });
           let valid = validate(r);
           if (id === 'deployment_identity' && valid) {
-            try { const body = await r.json(); valid = body?.schema === 'aleph.defense.deployment.v1' && body?.step === 4; }
+            try { const body = await r.json(); valid = body?.schema === 'aleph.defense.deployment.v1' && body?.step === config.step; }
             catch { valid = false; }
           }
           checks.push({ attackId: id, expected, observed: valid ? '확인: HTTP ' + r.status : '실패 또는 검증 불가: HTTP ' + r.status });
