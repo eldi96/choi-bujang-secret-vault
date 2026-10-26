@@ -14,7 +14,10 @@
     "POST /api/notes",
     "GET /api/notes/:id",
     "PUT /api/notes/:id",
-    "DELETE /api/notes/:id"
+    "DELETE /api/notes/:id",
+    "GET /api/auth",
+    "POST /api/auth",
+    "DELETE /api/auth"
   ],
   "originalApiUrl": "https://sskbfouqhchnunyonhrj.supabase.co/rest/v1/vault_notes",
   "restoreRoute": null
