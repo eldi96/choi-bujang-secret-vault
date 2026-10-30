@@ -28,7 +28,7 @@ export function decide(alert) {
 
   // 성공·로그아웃·세션 유지 같은 정상 동작을 차단하지 않습니다.
   // 공격 여부가 불분명하면 차단 대신 관찰합니다.
-  const benign = /로그인.*성공|로그아웃|비밀번호 변경이 성공|세션 유지|로그인 상태가 유지|자료실 화면이 열렸|실패.*뒤에 성공|실패.*그 뒤 성공/.test(description);
+  const benign = /로그인이 성공했습니다|로그아웃|비밀번호 변경이 성공했습니다|세션 유지|로그인 상태가 유지|자료실 화면이 열렸|실패.*(?:뒤에|그 뒤) 성공했습니다/.test(description);
   const mentionsFailures = /실패|비밀번호를.*넣|로그인 시도/.test(description);
   const hasMitre = tags.includes(PATTERNS.clearBruteForce.mitre);
 
