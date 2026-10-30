@@ -22,9 +22,9 @@
     },
     {
       "alertId": "bf-04",
-      "action": "alert",
-      "confidence": 0.67,
-      "reason": "brute_force_suspicious_attempts"
+      "action": "block",
+      "confidence": 0.94,
+      "reason": "brute_force_high_volume"
     },
     {
       "alertId": "bf-05",
@@ -58,9 +58,9 @@
     },
     {
       "alertId": "bf-10",
-      "action": "alert",
-      "confidence": 0.67,
-      "reason": "brute_force_suspicious_attempts"
+      "action": "block",
+      "confidence": 0.94,
+      "reason": "brute_force_high_volume"
     },
     {
       "alertId": "bf-11",
@@ -172,8 +172,8 @@
     }
   ],
   "counts": {
-    "block": 8,
-    "alert": 11,
+    "block": 10,
+    "alert": 9,
     "record": 9
   }
 }
