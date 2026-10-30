@@ -111,3 +111,16 @@
 2. 승인된 학습 DB에서 `has_table_privilege`로 `anon`·`authenticated`의 네 CRUD 권한이 false이고 `service_role`은 true인지 조회합니다.
 3. 공개 가능한 anon 키로 원본 REST 경로를 읽기 전용 요청해 실제 차단 HTTP 응답을 확인합니다. 키는 Git·로그·제출 묶음에 기록하지 않습니다.
 4. 로컬 Git 저장소를 원격과 동기화하고 `git status`가 깨끗한지 확인한 다음 `npm run bundle`을 실행합니다. 생성되는 `artifacts/submission.json`은 커밋하지 않습니다. 자체 점검과 공식 심판 결과를 구분합니다.
+
+
+## 보너스 xdr-01 저장점 (2026-10-30)
+
+- 대상: MITRE ATT&CK T1110 기반 무차별 로그인 공격 경보 분류.
+- `xdr/brute-force/patterns.json`: 근거가 있는 탐지 패턴 2개.
+- `xdr/brute-force/read-alerts.mjs`: 경보의 시각·출발 주소·계정·규칙 수준·설명만 추출.
+- `xdr/brute-force/decide.mjs`: import·파일 입출력 없이 경보를 block/alert/record로 분류.
+- `xdr/brute-force/respond.mjs`: 만료 시각과 경보 ID가 있는 차단 후보 및 알림 로그 작성 기능. **운영 ZTNA 실제 거부 연동은 미완료**.
+- 재실행: 저장소 루트에서 `npm run xdr:run -- brute-force`.
+- 사용자 로컬 실행 결과: `block 10 / alert 9 / record 9`, 정상 이벤트 `bf-20`~`bf-28`의 block 0건.
+- 실행 결과는 `xdr/brute-force/result.json`에 기록됨. GitHub 저장본은 로컬 재실행본과 일치 여부를 별도 확인해야 함.
+- 공식 심판 판정과 운영 ZTNA 차단 성공은 아직 확인되지 않음.
