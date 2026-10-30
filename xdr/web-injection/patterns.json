@@ -1,0 +1,22 @@
+{
+  "moduleKey": "web-injection",
+  "mitre": "T1190",
+  "patterns": [
+    {
+      "name": "sql-injection-repeat",
+      "condition": "동일 출발 주소의 요청 인자에서 SQL 구문 표식이 반복되고 경보의 반복 횟수와 설명이 일치함",
+      "evidence": "T1190: 외부 공개 웹 앱의 입력 처리 취약점을 SQL 주입으로 악용하려는 반복 시도."
+    },
+    {
+      "name": "script-tag-repeat",
+      "condition": "동일 출발 주소의 요청 인자에서 스크립트 태그 또는 삽입 표식이 반복되고 경보의 반복 횟수와 설명이 일치함",
+      "evidence": "T1190: 외부 공개 웹 앱의 입력 검증 취약점을 스크립트 삽입으로 악용하려는 반복 시도."
+    },
+    {
+      "name": "path-traversal-repeat",
+      "condition": "동일 출발 주소의 요청 경로 인자에서 ../ 같은 상위 경로 이동 표식이 반복되고 경보의 반복 횟수와 설명이 일치함",
+      "evidence": "T1190: 외부 공개 웹 앱의 경로 처리 취약점을 이용해 허용 범위 밖의 파일에 접근하려는 반복 시도."
+    }
+  ],
+  "caution": "단일 SQL/script/up 단어나 한 번의 특수문자만으로 공격 확정 또는 차단하지 않음."
+}
