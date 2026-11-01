@@ -34,9 +34,9 @@
     },
     {
       "alertId": "wi-06",
-      "action": "alert",
-      "confidence": 0.6,
-      "reason": "T1190-weak-injection-signal"
+      "action": "block",
+      "confidence": 0.94,
+      "reason": "command-separator-repeat"
     },
     {
       "alertId": "wi-07",
@@ -52,57 +52,57 @@
     },
     {
       "alertId": "wi-09",
-      "action": "record",
-      "confidence": 0.12,
-      "reason": "no_pattern_match"
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "single-unconfirmed-web-input"
     },
     {
       "alertId": "wi-10",
-      "action": "record",
-      "confidence": 0.12,
-      "reason": "no_pattern_match"
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "single-unconfirmed-web-input"
     },
     {
       "alertId": "wi-11",
-      "action": "record",
-      "confidence": 0.12,
-      "reason": "no_pattern_match"
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "single-unconfirmed-web-input"
     },
     {
       "alertId": "wi-12",
-      "action": "record",
-      "confidence": 0.12,
-      "reason": "no_pattern_match"
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "single-unconfirmed-web-input"
     },
     {
       "alertId": "wi-13",
-      "action": "record",
-      "confidence": 0.12,
-      "reason": "no_pattern_match"
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "single-unconfirmed-web-input"
     },
     {
       "alertId": "wi-14",
-      "action": "record",
-      "confidence": 0.12,
-      "reason": "no_pattern_match"
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "single-unconfirmed-web-input"
     },
     {
       "alertId": "wi-15",
-      "action": "record",
-      "confidence": 0.12,
-      "reason": "no_pattern_match"
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "single-unconfirmed-web-input"
     },
     {
       "alertId": "wi-16",
-      "action": "record",
-      "confidence": 0.12,
-      "reason": "no_pattern_match"
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "single-unconfirmed-web-input"
     },
     {
       "alertId": "wi-17",
-      "action": "record",
-      "confidence": 0.12,
-      "reason": "no_pattern_match"
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "single-unconfirmed-web-input"
     },
     {
       "alertId": "wi-18",
@@ -160,8 +160,8 @@
     }
   ],
   "counts": {
-    "block": 7,
-    "alert": 1,
-    "record": 18
+    "block": 8,
+    "alert": 9,
+    "record": 9
   }
 }
