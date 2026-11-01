@@ -10,6 +10,7 @@ const DEFAULT_TTL_MS = 5 * 60 * 1000;
 const allowedActions = new Set(['block', 'alert', 'record']);
 const allowedReasons = new Set([
   'sql-injection-repeat', 'script-tag-repeat', 'path-traversal-repeat',
+  'command-separator-repeat',
 ]);
 
 function validIp(ip) {
