@@ -2,7 +2,7 @@
 // The student changes this check as each stage adds an attack to the same app.
 // Never return tokens, private keys, real names, or note bodies.
 export async function runAttackChecks(config) {
-  if (config.step === 7) {
+  if (config.step === 7 || config.step === 8) {
     const { fixtureRequests } = await import('../scripts/fixture-7.mjs');
     const { decide } = await import('./decider.mjs');
     const { normal, suspicious } = fixtureRequests();
@@ -26,6 +26,22 @@ export async function runAttackChecks(config) {
       expected: '동일 사용자 새 로그인 전 자료 차단 및 새 요청 재판정',
       observed: '미실행: 제공 엔진의 새 로그인 검증 계약 및 실제 연동 환경 확인 필요',
     });
+    if (config.step === 8) {
+      for (const [attackId, overrides, expectedDecision] of [
+        ['notes_list_fixture', { path: '/notes', route: 'GET /notes' }, 'deny'],
+        ['notice_read_fixture', { service: 'notices', path: '/notices', route: 'GET /notices' }, 'allow'],
+        ['notice_write_fixture', { service: 'notices', method: 'POST', path: '/notices', route: 'POST /notices' }, 'deny'],
+        ['teacher_material_fixture', { service: 'teacher', path: '/teacher/demo', route: 'GET /teacher/:id' }, 'deny'],
+      ]) {
+        const result = await decide({ ...normal, ...overrides });
+        attempts.push({ attackId, expected: '로컬 가상 판정: ' + expectedDecision,
+          observed: (result.decision === expectedDecision ? '일치: ' : '불일치: ')
+            + result.decision + ' (실제 API·공식 심판 시험 아님)' });
+      }
+      attempts.push({ attackId: 'live_cross_owner_api',
+        expected: '실제 A/B 인증 세션으로 타인 메모 및 공지 쓰기 거부',
+        observed: '미실행: 실제 세션·DB 교차 접근 시험 필요. 공지 GET은 501 미구현' });
+    }
     return attempts;
   }
   if (![1, 2, 3, 4, 5, 6].includes(config.step)) {

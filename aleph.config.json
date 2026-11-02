@@ -1,5 +1,5 @@
 {
-  "step": 7,
+  "step": 8,
   "repoUrl": "https://github.com/eldi96/choi-bujang-secret-vault",
   "publicAppUrl": "https://choi-bujang-secret-vault-zeta-nine.vercel.app",
   "sampleMarker": "SAMPLE_NOTE_1",
@@ -10,14 +10,10 @@
     "audience": "authenticated"
   },
   "allowedRoutes": [
-    "GET /api/notes",
-    "POST /api/notes",
     "GET /api/notes/:id",
     "PUT /api/notes/:id",
     "DELETE /api/notes/:id",
-    "GET /api/auth",
-    "POST /api/auth",
-    "DELETE /api/auth"
+    "GET /api/notices"
   ],
   "originalApiUrl": "https://sskbfouqhchnunyonhrj.supabase.co/rest/v1/vault_notes",
   "restoreRoute": null

@@ -2,6 +2,7 @@ import { randomInt, randomUUID } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import config from '../aleph.config.json' with { type: 'json' };
 import { createLoginVerifier } from '../src/verify-login.mjs';
+import { RESOURCE_IDS } from '../src/resources.mjs';
 
 const COOKIE = '__Host-aleph_access';
 function cookieToken(req) {
@@ -31,6 +32,7 @@ function sendDbError(res, error) {
   return res.status(502).json({ error: 'Could not process note' });
 }
 export default async function handler(req, res) {
+  res.setHeader('X-Aleph-Resource-Id', RESOURCE_IDS.notes);
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   if (!['GET', 'POST', 'PUT', 'DELETE'].includes(req.method)) {
@@ -47,7 +49,7 @@ export default async function handler(req, res) {
     }
     const authorization = req.headers.authorization || (browserToken ? `Bearer ${browserToken}` : null);
     const verified = await getVerifier(key)(authorization);
-    if (!verified) return res.status(401).json({ error: 'Login required or invalid token' });
+    if (!verified) return res.status(401).json({ error: 'Login required or invalid token', reasonCode: 'login_required' });
     const client = createClient(url, key, {
       auth: { persistSession: false, autoRefreshToken: false }
     });
@@ -59,14 +61,16 @@ export default async function handler(req, res) {
     const table = client.from('vault_notes');
 
     if (req.method === 'GET' && !noteId) {
-      const { data, error } = await table.select('public_id,title,content').eq('owner_id', verified.userId).order('id');
+      const { data, error } = await table.select('public_id,title,content,owner_id').eq('owner_id', verified.userId).order('id');
       if (error) return sendDbError(res, error);
+      if (data.some(n => n.owner_id !== verified.userId)) return res.status(403).json({ error: 'Access denied', reasonCode: 'owner_mismatch' });
       return res.status(200).json({ notes: data.map(n => ({ id: n.public_id, title: n.title, body: n.content })) });
     }
     if (req.method === 'GET') {
-      const { data, error } = await table.select('public_id,title,content').eq('public_id', noteId).eq('owner_id', verified.userId).maybeSingle();
+      const { data, error } = await table.select('public_id,title,content,owner_id').eq('public_id', noteId).eq('owner_id', verified.userId).maybeSingle();
       if (error) return sendDbError(res, error);
-      if (!data) return res.status(404).json({ error: 'Note not found' });
+      if (!data) return res.status(404).json({ error: 'Note not found', reasonCode: 'not_found_or_not_owned' });
+      if (data.owner_id !== verified.userId) return res.status(403).json({ error: 'Access denied', reasonCode: 'owner_mismatch' });
       return res.status(200).json({ id: data.public_id, title: data.title, body: data.content });
     }
     if (req.method === 'POST' && !noteId) {
@@ -74,6 +78,9 @@ export default async function handler(req, res) {
       if (!input || !validText(input.title, 200) || !validText(input.body, 10000)
           || (input.id !== undefined && (typeof input.id !== 'string' || !UUID.test(input.id)))) {
         return res.status(400).json({ error: 'Invalid note' });
+      }
+      if (['role', 'identity', 'owner_id', 'ownerId'].some(field => Object.hasOwn(input, field))) {
+        return res.status(400).json({ error: 'Authority fields are not accepted', reasonCode: 'authority_override' });
       }
       const id = input.id ?? randomUUID();
       // The starter table has a bigint primary key without an auto-number default.
@@ -96,21 +103,21 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Invalid note' });
       }
       // The existing owner and the updated row must both remain the verified user.
-      if (Object.hasOwn(input, 'owner_id') || Object.hasOwn(input, 'ownerId')) {
-        return res.status(400).json({ error: 'Owner cannot be changed' });
+      if (['role', 'identity', 'owner_id', 'ownerId'].some(field => Object.hasOwn(input, field))) {
+        return res.status(400).json({ error: 'Authority fields are not accepted', reasonCode: 'authority_override' });
       }
       const { data, error } = await table.update({
         title: input.title, content: input.body
       }).eq('public_id', noteId).eq('owner_id', verified.userId)
         .select('public_id,title,content,owner_id').maybeSingle();
       if (error) return sendDbError(res, error);
-      if (!data) return res.status(404).json({ error: 'Note not found' });
-      if (data.owner_id !== verified.userId) return res.status(403).json({ error: 'Access denied' });
+      if (!data) return res.status(404).json({ error: 'Note not found', reasonCode: 'not_found_or_not_owned' });
+      if (data.owner_id !== verified.userId) return res.status(403).json({ error: 'Access denied', reasonCode: 'owner_mismatch' });
       return res.status(200).json({ id: data.public_id, title: data.title, body: data.content });
     }
     const { data, error } = await table.delete().eq('public_id', noteId).eq('owner_id', verified.userId).select('public_id').maybeSingle();
     if (error) return sendDbError(res, error);
-    if (!data) return res.status(404).json({ error: 'Note not found' });
+    if (!data) return res.status(404).json({ error: 'Note not found', reasonCode: 'not_found_or_not_owned' });
     return res.status(200).json({ id: data.public_id });
   } catch {
     return res.status(500).json({ error: 'Internal server error' });
