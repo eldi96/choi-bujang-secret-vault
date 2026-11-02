@@ -34,7 +34,13 @@ export async function decide(request) {
     && connection.recentEvents !== null
     && connection.recentEvents.some(event => event.kind === 'risk_signal'
       && event.ageSeconds <= 60 && event.count >= 20);
-  if (registered && unusualAccess) {
+  // 엔진이 검증해 전달한 재확인 결과만 사용합니다. 토큰 발급 시각이나
+  // 브라우저의 로그인 주장은 사용하지 않으며, 기기 검사를 우회하지 않습니다.
+  const reverified = request.stepUp?.verified === true
+    && Number.isInteger(request.stepUp.authAgeSeconds)
+    && request.stepUp.authAgeSeconds >= 0
+    && request.stepUp.authAgeSeconds <= 900;
+  if (registered && unusualAccess && !reverified) {
     return {
       schema: 'aleph.decision.v1',
       requestId: request.requestId,
