@@ -2,7 +2,7 @@
 // The student changes this check as each stage adds an attack to the same app.
 // Never return tokens, private keys, real names, or note bodies.
 export async function runAttackChecks(config) {
-  if (config.step === 7 || config.step === 8) {
+  if (config.step === 7 || config.step === 8 || config.step === 9) {
     const { fixtureRequests } = await import('../scripts/fixture-7.mjs');
     const { decide } = await import('./decider.mjs');
     const { normal, suspicious } = fixtureRequests();
@@ -26,7 +26,7 @@ export async function runAttackChecks(config) {
       expected: '동일 사용자 새 로그인 전 자료 차단 및 새 요청 재판정',
       observed: '미실행: 제공 엔진의 새 로그인 검증 계약 및 실제 연동 환경 확인 필요',
     });
-    if (config.step === 8) {
+    if (config.step >= 8) {
       for (const [attackId, overrides, expectedDecision] of [
         ['notes_list_fixture', { path: '/notes', route: 'GET /notes' }, 'deny'],
         ['notice_read_fixture', { service: 'notices', path: '/notices', route: 'GET /notices' }, 'allow'],
@@ -41,6 +41,21 @@ export async function runAttackChecks(config) {
       attempts.push({ attackId: 'live_cross_owner_api',
         expected: '실제 A/B 인증 세션으로 타인 메모 및 공지 쓰기 거부',
         observed: '미실행: 실제 세션·DB 교차 접근 시험 필요. 공지 GET은 501 미구현' });
+    }
+    if (config.step === 9) {
+      const { detect } = await import('./detect.mjs');
+      const { checkDetection } = await import('../scripts/detect-test.mjs');
+      const results = await checkDetection(detect);
+      results.forEach((result, index) => attempts.push({
+        attackId: 'detection_fixture_' + (index + 1),
+        expected: '로컬 탐지 계약: ' + result.name,
+        observed: (result.passed ? '통과' : '실패') + ' (가상 사건·실제 접속 회수 아님)',
+      }));
+      attempts.push({
+        attackId: 'live_revocation',
+        expected: '운영 엔진 사건 전달 및 회수 제안 집행·탐지 회수 지연 측정',
+        observed: '미실행: 운영 엔진 연동·실제 접속 회수 시험 필요',
+      });
     }
     return attempts;
   }

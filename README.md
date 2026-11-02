@@ -154,3 +154,15 @@
 - 실행: `npm run decider:test`, `npm run fixture:7` 통과. 구역 가상 시험 37건과 직접 API 호출 모의 시험 통과. 실제 로그인 A/B 세션 및 DB 교차 접근 시험은 미실행입니다.
 - 운영 등록부의 `route_not_allowed` 허용 여부, 8단계 배포·공식 판정은 미확인입니다. 자원 ID 표시는 접근 권한 부여가 아닙니다.
 - 재실행: 의존성 설치 후 위 두 시험과 `npm run bundle`. 제출 JSON과 `bundle-notes.json`은 커밋하지 않습니다.
+
+
+## 9단계 저장점 (2026-11-02, 미배포)
+
+- 이전 8단계는 운영 커밋 `68aa0e8`로 GitHub·Vercel 반영 및 `/aleph.json`의 step 8·커밋 일치를 확인했습니다. 위 미배포 표시는 당시 저장점 기록입니다. 정확한 공식 점수는 미확인입니다.
+- `docs/DETECT_EVENTS.md`에 따라 `src/detect.mjs`는 사건의 at·method·identity.sub만 읽고 검증합니다. 누락·잘못된 값은 원문 없는 오류로 거부합니다. 사건·토큰·메모 본문·실명은 저장하거나 출력하지 않습니다.
+- 같은 가명 사용자의 GET을 at 순서로 정렬하고 어느 10분 구간이든 120건 초과이면 `{action: "propose_revocation", reasonCode: "burst_read", subject: 해당 sub}` 세 키만 반환합니다. 그 외에는 `{action: "observe"}`만 반환합니다.
+- 사용자 간 합산·GET 외 합산을 하지 않습니다. 창 계산에 현재 시각이나 기기·지역·네트워크를 사용하지 않습니다. 정확히 120건은 정상입니다.
+- 실행: `npm run detect:test` 6건 통과. 추가 시험에서 정확히 10분·10분+1ms·역순·GET 외·사용자 분리·빈 입력을 확인했습니다.
+- `step: 9`. 기존 배포 주소·인증 발급자·허용 경로·원본 API를 유지합니다. 판정기 응답 형식과 기기 권한은 변경하지 않았습니다.
+- **미실행:** 운영 엔진 사건 수신·회수 제안 집행·실제 접속 회수·탐지부터 회수까지 지연 측정. 회수 API를 만들지 않았고 가상 시험을 실제 차단 성공으로 기록하지 않습니다.
+- 재실행: `npm install`, `npm run detect:test`, `npm run decider:test`, `npm run fixture:7`, 깨끗한 Git 상태에서 `npm run bundle`. 제출 JSON과 bundle-notes.json은 커밋하지 않습니다.
