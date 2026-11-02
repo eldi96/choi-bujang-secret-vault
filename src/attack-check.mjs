@@ -2,6 +2,32 @@
 // The student changes this check as each stage adds an attack to the same app.
 // Never return tokens, private keys, real names, or note bodies.
 export async function runAttackChecks(config) {
+  if (config.step === 7) {
+    const { fixtureRequests } = await import('../scripts/fixture-7.mjs');
+    const { decide } = await import('./decider.mjs');
+    const { normal, suspicious } = fixtureRequests();
+    const attempts = [];
+    for (const [attackId, request, expectedDecision] of [
+      ['normal_fixture', normal, 'allow'],
+      ['compound_risk_fixture', suspicious, 'step_up'],
+      ['unregistered_device_fixture', { ...normal, deviceRegistered: false }, 'deny'],
+    ]) {
+      const result = await decide(request);
+      attempts.push({
+        attackId,
+        expected: '로컬 가상 요청 판정: ' + expectedDecision,
+        observed: (result.decision === expectedDecision ? '일치' : '불일치')
+          + ': ' + result.decision + ', 사유 ' + result.reasonCode
+          + ' (실제 HTTP·공식 심판 시험 아님)',
+      });
+    }
+    attempts.push({
+      attackId: 'live_reauthentication',
+      expected: '동일 사용자 새 로그인 전 자료 차단 및 새 요청 재판정',
+      observed: '미실행: 제공 엔진의 새 로그인 검증 계약 및 실제 연동 환경 확인 필요',
+    });
+    return attempts;
+  }
   if (![1, 2, 3, 4, 5, 6].includes(config.step)) {
     throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
   }
