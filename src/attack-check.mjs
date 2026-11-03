@@ -2,7 +2,7 @@
 // The student changes this check as each stage adds an attack to the same app.
 // Never return tokens, private keys, real names, or note bodies.
 export async function runAttackChecks(config) {
-  if (config.step === 7 || config.step === 8 || config.step === 9) {
+  if ([7, 8, 9, 10].includes(config.step)) {
     const { fixtureRequests } = await import('../scripts/fixture-7.mjs');
     const { decide } = await import('./decider.mjs');
     const { normal, suspicious } = fixtureRequests();
@@ -42,7 +42,7 @@ export async function runAttackChecks(config) {
         expected: '실제 A/B 인증 세션으로 타인 메모 및 공지 쓰기 거부',
         observed: '미실행: 실제 세션·DB 교차 접근 시험 필요. 공지 GET은 501 미구현' });
     }
-    if (config.step === 9) {
+    if (config.step >= 9) {
       const { detect } = await import('./detect.mjs');
       const { checkDetection } = await import('../scripts/detect-test.mjs');
       const results = await checkDetection(detect);
@@ -55,6 +55,17 @@ export async function runAttackChecks(config) {
         attackId: 'live_revocation',
         expected: '운영 엔진 사건 전달 및 회수 제안 집행·탐지 회수 지연 측정',
         observed: '미실행: 운영 엔진 연동·실제 접속 회수 시험 필요',
+      });
+    }
+    if (config.step === 10) {
+      attempts.push({
+        attackId: 'target_note_restore',
+        expected: 'B의 지정 메모 한 건을 비공개 사본으로 복원 후 ID·소유자·내용 해시 일치',
+        observed: '미실행: 비공개 B 대상 사본·POST 복원 경로 준비, 실제 B 세션 복원 및 해시 대조 미실행',
+      }, {
+        attackId: 'post_restore_regression',
+        expected: '실제 자료·정책 복구 후 1~9단계 정상·금지 요청 및 감사 보존 재검증',
+        observed: '미실행: README에 절차만 기록. 정책 시험 사본 한 줄 복원과 전체 실제 복구는 다름',
       });
     }
     return attempts;

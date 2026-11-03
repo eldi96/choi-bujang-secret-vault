@@ -1,5 +1,5 @@
 {
-  "step": 9,
+  "step": 10,
   "repoUrl": "https://github.com/eldi96/choi-bujang-secret-vault",
   "publicAppUrl": "https://choi-bujang-secret-vault-zeta-nine.vercel.app",
   "sampleMarker": "SAMPLE_NOTE_1",
@@ -16,5 +16,5 @@
     "GET /api/notices"
   ],
   "originalApiUrl": "https://sskbfouqhchnunyonhrj.supabase.co/rest/v1/vault_notes",
-  "restoreRoute": null
+  "restoreRoute": "POST /api/restore-note"
 }
