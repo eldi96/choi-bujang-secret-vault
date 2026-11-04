@@ -7,6 +7,7 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 // 격리 환경에서는 Git 읽기 하위 명령만 사용하며 전역 -C 인수를 붙이지 않습니다.
 const git = (...args) => execFileSync('git', args, {
   cwd: root, encoding: 'utf8', timeout: 5000, maxBuffer: 512 * 1024,
+  env: { ...process.env, GIT_OPTIONAL_LOCKS: '0' },
 }).trim();
 const fromCommit = (path) => JSON.parse(git('show', `HEAD:${path}`));
 function originFromConfig() {
