@@ -2,7 +2,7 @@
 // The student changes this check as each stage adds an attack to the same app.
 // Never return tokens, private keys, real names, or note bodies.
 export async function runAttackChecks(config) {
-  if ([7, 8, 9, 10, 11].includes(config.step)) {
+  if ([7, 8, 9, 10, 11, 12].includes(config.step)) {
     const { fixtureRequests } = await import('../scripts/fixture-7.mjs');
     const { decide } = await import('./decider.mjs');
     const { normal, suspicious } = fixtureRequests();
@@ -68,11 +68,12 @@ export async function runAttackChecks(config) {
         observed: '미실행: README에 절차만 기록. 정책 시험 사본 한 줄 복원과 전체 실제 복구는 다름',
       });
     }
-    if (config.step === 11) {
+    if (config.step >= 11) {
       const { execFileSync } = await import('node:child_process');
       let passed = false;
       try {
-        execFileSync(process.execPath, ['--test', 'test/device-approval.test.mjs', 'test/device-screen.test.mjs'], {
+        execFileSync(process.execPath, ['--test', 'test/device-approval.test.mjs', 'test/device-screen.test.mjs',
+          ...(config.step === 12 ? ['test/operations.test.mjs'] : [])], {
           cwd: new URL('../', import.meta.url), timeout: 30000,
           stdio: 'pipe', maxBuffer: 256 * 1024,
         });
@@ -80,12 +81,16 @@ export async function runAttackChecks(config) {
       } catch {}
       attempts.push({
         attackId: 'device_approval_mock',
-        expected: '서버 승인 전 메모 차단, 승인 후 정상, 회수·오류·자기 승인 거부',
-        observed: (passed ? '통과' : '실패') + ': 화면·API 모의 시험 5건 실행. 실제 브라우저·물리 기기 검증 아님',
+        expected: '서버 승인 전 메모 차단, 승인 후 정상, 회수·오류·자기 승인 거부'
+          + (config.step === 12 ? ', 작전실 API·로그·22행 미실행 표 일치' : ''),
+        observed: (passed ? '통과' : '실패') + (config.step === 12
+          ? ': 승인·화면 모의 및 작전실 로컬 HTTP 시험 묶음 실행. 실제 배포·물리 기기·공식 41종 시험 아님'
+          : ': 화면·API 모의 시험 5건 실행. 실제 브라우저·물리 기기 검증 아님'),
       }, {
         attackId: 'live_device_approval',
         expected: '배포 화면에서 실제 로그인·승인 대기·서버 승인 후 본인 자료·회수 후 거부 확인',
-        observed: '미실행: 이번 화면·API는 로컬 저장점. 세션 승인과 운영 엔진 기기 등록은 별도이며 실제 배포 시험 필요',
+        observed: '미실행: 이번 화면·API는 로컬 저장점. 세션 승인과 운영 엔진 기기 등록은 별도이며 실제 배포 시험 필요'
+          + (config.step === 12 ? '. 1~11단계 실측 표 22행과 공식 41종도 미실행' : ''),
       });
     }
     return attempts;
