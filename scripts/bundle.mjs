@@ -68,7 +68,15 @@ try {
   if (normalizedRepo(config.repoUrl) !== repoUrl) {
     fail('aleph.config.json의 repoUrl이 Git origin 주소와 다릅니다. 같은 저장소 주소로 맞춰 주세요.');
   }
-  const notes = JSON.parse(readFileSync(join(root, 'bundle-notes.json'), 'utf8'));
+  let notes;
+  try {
+    notes = JSON.parse(readFileSync(join(root, 'bundle-notes.json'), 'utf8'));
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+    notes = {
+      explanation: `이 제출 묶음은 ${config.step}단계 저장점에서 생성했습니다. 실행 결과와 미실행 항목은 attackAttempts에 기록합니다.`,
+    };
+  }
   if (!Number.isInteger(config.step) || config.step < 1 || config.step > 12) fail('aleph.config.json의 step을 확인해 주세요.');
   if (config.step >= 3 && (!config.identityProvider || typeof config.identityProvider !== 'object'
       || ['issuer', 'audience', 'jwksUrl'].some((key) => typeof config.identityProvider[key] !== 'string'
