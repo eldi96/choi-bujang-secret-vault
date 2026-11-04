@@ -1,14 +1,42 @@
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
-const root = resolve(import.meta.dirname, '..');
-const git = (...args) => execFileSync('git', ['-C', root, ...args], {
-  encoding: 'utf8', timeout: 5000, maxBuffer: 512 * 1024, windowsHide: true,
-  env: { ...process.env, GIT_TERMINAL_PROMPT: '0', GIT_OPTIONAL_LOCKS: '0' },
+const root = fileURLToPath(new URL('../', import.meta.url));
+// 격리 환경에서는 Git 읽기 하위 명령만 사용하며 전역 -C 인수를 붙이지 않습니다.
+const git = (...args) => execFileSync('git', args, {
+  cwd: root, encoding: 'utf8', timeout: 5000, maxBuffer: 512 * 1024,
 }).trim();
 const fromCommit = (path) => JSON.parse(git('show', `HEAD:${path}`));
+function originFromConfig() {
+  // git config/remote 대신 저장소 설정을 읽습니다. worktree의 gitdir/commondir도 지원합니다.
+  let gitDir = join(root, '.git');
+  let configText;
+  try { configText = readFileSync(join(gitDir, 'config'), 'utf8'); }
+  catch {
+    const pointer = /^gitdir:\s*(.+)\s*$/u.exec(readFileSync(gitDir, 'utf8').trim());
+    if (!pointer) throw new Error('invalid_git_directory');
+    gitDir = resolve(root, pointer[1]);
+    let commonDir = gitDir;
+    try { commonDir = resolve(gitDir, readFileSync(join(gitDir, 'commondir'), 'utf8').trim()); }
+    catch (error) { if (error.code !== 'ENOENT') throw error; }
+    configText = readFileSync(join(commonDir, 'config'), 'utf8');
+  }
+  const origins = [];
+  let inOrigin = false;
+  for (const line of configText.split(/\r?\n/u)) {
+    if (/^\s*\[/u.test(line)) inOrigin = /^\s*\[remote\s+"origin"\]\s*(?:[#;].*)?$/iu.test(line);
+    else if (inOrigin) {
+      const match = /^\s*url\s*=\s*(.*?)\s*$/iu.exec(line);
+      if (match) origins.push(match[1].replace(/^"(.*)"$/u, '$1'));
+    }
+    // 외부 include로 원격 주소가 달라질 수 있으면 이 제한된 읽기 방식으로 단정하지 않습니다.
+    if (/^\s*\[include(?:if\s+[^\]]+)?\]/iu.test(line)) throw new Error('git_include_requires_review');
+  }
+  if (origins.length !== 1) throw new Error('invalid_origin_config');
+  return origins[0];
+}
 const fail = (message) => { throw new Error(message); };
 const secretPattern = /-----BEGIN [A-Z ]*PRIVATE KEY-----|\bBearer\s+[A-Za-z0-9._~+/-]{16,}|\bsb_secret_[A-Za-z0-9_-]{12,}|\bsk-[A-Za-z0-9_-]{20,}|\beyJ[A-Za-z0-9_-]{12,}\.eyJ[A-Za-z0-9_-]{12,}\.[A-Za-z0-9_-]{8,}|[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/iu;
 const repository = /^https:\/\/github\.com\/([A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?)\/([A-Za-z0-9._-]{1,100})\/?$/iu;
@@ -28,15 +56,12 @@ try {
   const commit = git('rev-parse', '--verify', 'HEAD');
   let repoUrl;
   try {
-    const raw = git('config', '--local', '--no-includes', '--get', 'remote.origin.url');
-    const effective = git('remote', 'get-url', 'origin');
-    repoUrl = normalizedRepo(raw);
-    if (normalizedRepo(effective) !== repoUrl) fail('origin 주소가 Git 설정에서 바뀌었습니다. 저장소 설정을 확인해 주세요.');
+    repoUrl = normalizedRepo(originFromConfig());
   } catch (error) {
     if (error.message?.startsWith('origin 주소가') || error.message?.startsWith('GitHub HTTPS')) throw error;
     fail('GitHub HTTPS 저장소 주소를 origin으로 등록해 주세요.');
   }
-  const changedFiles = git('diff-tree', '--root', '-m', '--no-commit-id', '--name-only', '--no-renames', '-r', commit)
+  const changedFiles = git('show', '--format=', '--name-only', '--no-renames', commit)
     .split(/\r?\n/u).filter(Boolean).sort();
   if (!changedFiles.length) fail('마지막 커밋에 바뀐 파일이 없습니다.');
   const config = fromCommit('aleph.config.json');
