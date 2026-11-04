@@ -2,6 +2,7 @@ import { randomInt, randomUUID } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import config from '../aleph.config.json' with { type: 'json' };
 import { createLoginVerifier } from '../src/verify-login.mjs';
+import { readDeviceApproval } from '../src/device-approval.mjs';
 import { RESOURCE_IDS } from '../src/resources.mjs';
 
 const COOKIE = '__Host-aleph_access';
@@ -31,16 +32,14 @@ function validText(value, limit) {
 function sendDbError(res, error) {
   return res.status(502).json({ error: 'Could not process note' });
 }
-export default async function handler(req, res) {
+export function createNotesHandler({ verify, client }) {
+return async function handler(req, res) {
   res.setHeader('X-Aleph-Resource-Id', RESOURCE_IDS.notes);
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   if (!['GET', 'POST', 'PUT', 'DELETE'].includes(req.method)) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SECRET_KEY;
-  if (!url || !key) return res.status(503).json({ error: 'Server not configured' });
 
   try {
     const browserToken = cookieToken(req);
@@ -48,11 +47,12 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: 'Origin denied' });
     }
     const authorization = req.headers.authorization || (browserToken ? `Bearer ${browserToken}` : null);
-    const verified = await getVerifier(key)(authorization);
+    const verified = await verify(authorization);
     if (!verified) return res.status(401).json({ error: 'Login required or invalid token', reasonCode: 'login_required' });
-    const client = createClient(url, key, {
-      auth: { persistSession: false, autoRefreshToken: false }
-    });
+    let device;
+    try { device = await readDeviceApproval(client, verified); }
+    catch { return res.status(503).json({ error: 'Device registry unavailable', reasonCode: 'device_registry_unavailable' }); }
+    if (!device.registered) return res.status(403).json({ error: 'Device approval required', reasonCode: 'device_approval_required' });
     const rawId = req.query?.id;
     const noteId = Array.isArray(rawId) ? null : rawId;
     if (noteId !== undefined && (!noteId || !UUID.test(noteId))) {
@@ -122,4 +122,17 @@ export default async function handler(req, res) {
   } catch {
     return res.status(500).json({ error: 'Internal server error' });
   }
+}
+
+}
+export default async function handler(req, res) {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SECRET_KEY;
+  if (!url || !key) {
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(503).json({ error: 'Server not configured' });
+  }
+  return createNotesHandler({ verify: getVerifier(key),
+    client: createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } }),
+  })(req, res);
 }

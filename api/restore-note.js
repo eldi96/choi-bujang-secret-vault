@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import config from '../aleph.config.json' with { type: 'json' };
+import { readDeviceApproval } from '../src/device-approval.mjs';
 import { createLoginVerifier } from '../src/verify-login.mjs';
 
 export const contentHash = (title, body) => createHash('sha256')
@@ -32,6 +33,10 @@ export function createRestoreHandler({ verify, client, backup, expectedHash }) {
       }
       const user = await verify(authorization);
       if (!user || user.kind !== 'student' || user.userId !== OWNER) return fail(403, 'restore_owner_required');
+      let device;
+      try { device = await readDeviceApproval(client, user); }
+      catch { return fail(503, 'device_registry_unavailable'); }
+      if (!device.registered) return fail(403, 'device_approval_required');
       const input = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
       if (!input || Object.keys(input).length !== 1 || input.id !== TARGET) return fail(400, 'fixed_target_required');
       const { data: before, error } = await client.from('vault_notes')
