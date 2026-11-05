@@ -2,7 +2,7 @@
 // The student changes this check as each stage adds an attack to the same app.
 // Never return tokens, private keys, real names, or note bodies.
 export async function runAttackChecks(config) {
-  if ([7, 8, 9, 10, 11].includes(config.step)) {
+  if ([7, 8, 9, 10, 11, 12].includes(config.step)) {
     const { fixtureRequests } = await import('../scripts/fixture-7.mjs');
     const { decide } = await import('./decider.mjs');
     const { normal, suspicious } = fixtureRequests();
@@ -68,7 +68,7 @@ export async function runAttackChecks(config) {
         observed: '미실행: README에 절차만 기록. 정책 시험 사본 한 줄 복원과 전체 실제 복구는 다름',
       });
     }
-    if (config.step === 11) {
+    if (config.step >= 11) {
       const { execFileSync } = await import('node:child_process');
       let passed = false;
       try {
