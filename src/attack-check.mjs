@@ -24,7 +24,7 @@ export async function runAttackChecks(config) {
     attempts.push({
       attackId: 'live_reauthentication',
       expected: '동일 사용자 새 로그인 전 자료 차단 및 새 요청 재판정',
-      observed: '미실행: 제공 엔진의 새 로그인 검증 계약 및 실제 연동 환경 확인 필요',
+      observed: 'not_run',
     });
     if (config.step >= 8) {
       for (const [attackId, overrides, expectedDecision] of [
@@ -40,52 +40,45 @@ export async function runAttackChecks(config) {
       }
       attempts.push({ attackId: 'live_cross_owner_api',
         expected: '실제 A/B 인증 세션으로 타인 메모 및 공지 쓰기 거부',
-        observed: '미실행: 실제 세션·DB 교차 접근 시험 필요. 공지 GET은 501 미구현' });
+        observed: 'not_run' });
     }
     if (config.step >= 9) {
-      const { detect } = await import('./detect.mjs');
-      const { checkDetection } = await import('../scripts/detect-test.mjs');
-      const results = await checkDetection(detect);
-      results.forEach((result, index) => attempts.push({
+      // 격리 환경에서 시험 도구를 가져오지 않습니다. 여기서 실행하지 않은 점검입니다.
+      const detectionCases = ['정상 조회 30건', '10분 안에 120건', '10분 안에 121건',
+        '폭주 조회 200건', '서로 다른 사용자 각 100건', '10분 밖으로 흩어진 조회 200건'];
+      detectionCases.forEach((name, index) => attempts.push({
         attackId: 'detection_fixture_' + (index + 1),
-        expected: '로컬 탐지 계약: ' + result.name,
-        observed: (result.passed ? '통과' : '실패') + ' (가상 사건·실제 접속 회수 아님)',
+        expected: '로컬 탐지 계약: ' + name,
+        observed: 'not_run',
       }));
       attempts.push({
         attackId: 'live_revocation',
         expected: '운영 엔진 사건 전달 및 회수 제안 집행·탐지 회수 지연 측정',
-        observed: '미실행: 운영 엔진 연동·실제 접속 회수 시험 필요',
+        observed: 'not_run',
       });
     }
     if (config.step >= 10) {
       attempts.push({
         attackId: 'target_note_restore',
         expected: 'B의 지정 메모 한 건을 비공개 사본으로 복원 후 ID·소유자·내용 해시 일치',
-        observed: '미실행: 비공개 B 대상 사본·POST 복원 경로 준비, 실제 B 세션 복원 및 해시 대조 미실행',
+        observed: 'not_run',
       }, {
         attackId: 'post_restore_regression',
         expected: '실제 자료·정책 복구 후 1~9단계 정상·금지 요청 및 감사 보존 재검증',
-        observed: '미실행: README에 절차만 기록. 정책 시험 사본 한 줄 복원과 전체 실제 복구는 다름',
+        observed: 'not_run',
       });
     }
     if (config.step >= 11) {
-      const { execFileSync } = await import('node:child_process');
-      let passed = false;
-      try {
-        execFileSync(process.execPath, ['--test', 'test/device-approval.test.mjs', 'test/device-screen.test.mjs'], {
-          cwd: new URL('../', import.meta.url), timeout: 30000,
-          stdio: 'pipe', maxBuffer: 256 * 1024,
-        });
-        passed = true;
-      } catch {}
+      // 자식 프로세스로 시험을 실행하지 않습니다. 별도 실행 기록과 이번 묶음을 섞지 않습니다.
       attempts.push({
         attackId: 'device_approval_mock',
-        expected: '서버 승인 전 메모 차단, 승인 후 정상, 회수·오류·자기 승인 거부',
-        observed: (passed ? '통과' : '실패') + ': 화면·API 모의 시험 5건 실행. 실제 브라우저·물리 기기 검증 아님',
+        expected: '서버 승인 전 메모 차단, 승인 후 정상, 회수·오류·자기 승인 거부'
+          + (config.step === 12 ? ', 작전실 API·로그·22행 미실행 표 일치' : ''),
+        observed: 'not_run',
       }, {
         attackId: 'live_device_approval',
         expected: '배포 화면에서 실제 로그인·승인 대기·서버 승인 후 본인 자료·회수 후 거부 확인',
-        observed: '미실행: 이번 화면·API는 로컬 저장점. 세션 승인과 운영 엔진 기기 등록은 별도이며 실제 배포 시험 필요',
+        observed: 'not_run',
       });
     }
     return attempts;
