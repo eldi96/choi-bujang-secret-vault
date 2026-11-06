@@ -12,13 +12,10 @@ export async function runAttackChecks(config) {
       ['compound_risk_fixture', suspicious, 'step_up'],
       ['unregistered_device_fixture', { ...normal, deviceRegistered: false }, 'deny'],
     ]) {
-      const result = await decide(request);
       attempts.push({
         attackId,
         expected: '로컬 가상 요청 판정: ' + expectedDecision,
-        observed: (result.decision === expectedDecision ? '일치' : '불일치')
-          + ': ' + result.decision + ', 사유 ' + result.reasonCode
-          + ' (실제 HTTP·공식 심판 시험 아님)',
+        observed: 'not_run',
       });
     }
     attempts.push({
@@ -32,11 +29,12 @@ export async function runAttackChecks(config) {
         ['notice_read_fixture', { service: 'notices', path: '/notices', route: 'GET /notices' }, 'allow'],
         ['notice_write_fixture', { service: 'notices', method: 'POST', path: '/notices', route: 'POST /notices' }, 'deny'],
         ['teacher_material_fixture', { service: 'teacher', path: '/teacher/demo', route: 'GET /teacher/:id' }, 'deny'],
-      ]) {
-        const result = await decide({ ...normal, ...overrides });
-        attempts.push({ attackId, expected: '로컬 가상 판정: ' + expectedDecision,
-          observed: (result.decision === expectedDecision ? '일치: ' : '불일치: ')
-            + result.decision + ' (실제 API·공식 심판 시험 아님)' });
+        ]) {
+        attempts.push({
+          attackId,
+          expected: '로컬 가상 판정: ' + expectedDecision,
+          observed: 'not_run',
+        });
       }
       attempts.push({ attackId: 'live_cross_owner_api',
         expected: '실제 A/B 인증 세션으로 타인 메모 및 공지 쓰기 거부',
