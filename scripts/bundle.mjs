@@ -4,9 +4,39 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const git = (...args) => execFileSync('git', ['-C', root, ...args], {
-  encoding: 'utf8', timeout: 5000, maxBuffer: 512 * 1024, windowsHide: true,
+// 전역 -C 인수 없이 읽기 하위 명령을 첫 인수로 두고, 폴더는 cwd로 넘깁니다.
+const git = (...args) => execFileSync('git', args, {
+  cwd: root, encoding: 'utf8', timeout: 5000, maxBuffer: 512 * 1024, windowsHide: true,
 }).trim();
+// git config 대신 node:fs로 저장소 설정 파일의 origin 주소만 읽습니다.
+const originFromConfig = () => {
+  let gitDir = join(root, '.git');
+  let configText;
+  try { configText = readFileSync(join(gitDir, 'config'), 'utf8'); }
+  catch {
+    // worktree에서는 .git이 실제 gitdir를 가리키는 파일입니다.
+    const pointer = /^gitdir:\s*(.+)$/u.exec(readFileSync(gitDir, 'utf8').trim());
+    if (!pointer) fail('GitHub HTTPS 저장소 주소를 origin으로 등록해 주세요.');
+    gitDir = resolve(root, pointer[1].trim());
+    let commonDir = gitDir;
+    try { commonDir = resolve(gitDir, readFileSync(join(gitDir, 'commondir'), 'utf8').trim()); }
+    catch (error) { if (error.code !== 'ENOENT') throw error; }
+    configText = readFileSync(join(commonDir, 'config'), 'utf8');
+  }
+  const origins = [];
+  let inOrigin = false;
+  for (const line of configText.split(/\r?\n/u)) {
+    // 기존 --no-includes와 같이 외부 설정 포함은 따르지 않고 거부합니다.
+    if (/^\s*\[include(?:if\s+[^\]]+)?\]/iu.test(line)) fail('GitHub HTTPS 저장소 주소를 origin으로 등록해 주세요.');
+    if (/^\s*\[/u.test(line)) inOrigin = /^\s*\[remote\s+"origin"\]\s*(?:[#;].*)?$/iu.test(line);
+    else if (inOrigin) {
+      const match = /^\s*url\s*=\s*(.*?)\s*$/iu.exec(line);
+      if (match) origins.push(match[1].replace(/^"(.*)"$/u, '$1'));
+    }
+  }
+  if (origins.length !== 1) fail('GitHub HTTPS 저장소 주소를 origin으로 등록해 주세요.');
+  return origins[0];
+};
 const fromCommit = (path) => JSON.parse(git('show', `HEAD:${path}`));
 const fail = (message) => { throw new Error(message); };
 const secretPattern = /-----BEGIN [A-Z ]*PRIVATE KEY-----|\bBearer\s+[A-Za-z0-9._~+/-]{16,}|\bsb_secret_[A-Za-z0-9_-]{12,}|\bsk-[A-Za-z0-9_-]{20,}|\beyJ[A-Za-z0-9_-]{12,}\.eyJ[A-Za-z0-9_-]{12,}\.[A-Za-z0-9_-]{8,}|[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/iu;
@@ -27,8 +57,7 @@ try {
   const commit = git('rev-parse', '--verify', 'HEAD');
   let repoUrl;
   try {
-    const raw = git('config', '--local', '--no-includes', '--get', 'remote.origin.url');
-    repoUrl = normalizedRepo(raw);
+    repoUrl = normalizedRepo(originFromConfig());
   } catch (error) {
     if (error.message?.startsWith('origin 주소가') || error.message?.startsWith('GitHub HTTPS')) throw error;
     fail('GitHub HTTPS 저장소 주소를 origin으로 등록해 주세요.');
