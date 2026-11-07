@@ -3,14 +3,12 @@
 // Never return tokens, private keys, real names, or note bodies.
 export async function runAttackChecks(config) {
   if ([7, 8, 9, 10, 11, 12].includes(config.step)) {
-    const { fixtureRequests } = await import('../scripts/fixture-7.mjs');
-    const { decide } = await import('./decider.mjs');
-    const { normal, suspicious } = fixtureRequests();
+    // 격리 환경에서 process.argv를 읽는 scripts/fixture-7.mjs를 불러오지 않습니다.
     const attempts = [];
-    for (const [attackId, request, expectedDecision] of [
-      ['normal_fixture', normal, 'allow'],
-      ['compound_risk_fixture', suspicious, 'step_up'],
-      ['unregistered_device_fixture', { ...normal, deviceRegistered: false }, 'deny'],
+    for (const [attackId, expectedDecision] of [
+      ['normal_fixture', 'allow'],
+      ['compound_risk_fixture', 'step_up'],
+      ['unregistered_device_fixture', 'deny'],
     ]) {
       attempts.push({
         attackId,
@@ -24,12 +22,12 @@ export async function runAttackChecks(config) {
       observed: 'not_run',
     });
     if (config.step >= 8) {
-      for (const [attackId, overrides, expectedDecision] of [
-        ['notes_list_fixture', { path: '/notes', route: 'GET /notes' }, 'deny'],
-        ['notice_read_fixture', { service: 'notices', path: '/notices', route: 'GET /notices' }, 'allow'],
-        ['notice_write_fixture', { service: 'notices', method: 'POST', path: '/notices', route: 'POST /notices' }, 'deny'],
-        ['teacher_material_fixture', { service: 'teacher', path: '/teacher/demo', route: 'GET /teacher/:id' }, 'deny'],
-        ]) {
+      for (const [attackId, expectedDecision] of [
+        ['notes_list_fixture', 'deny'],
+        ['notice_read_fixture', 'allow'],
+        ['notice_write_fixture', 'deny'],
+        ['teacher_material_fixture', 'deny'],
+      ]) {
         attempts.push({
           attackId,
           expected: '로컬 가상 판정: ' + expectedDecision,
