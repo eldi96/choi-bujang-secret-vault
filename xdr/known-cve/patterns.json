@@ -1,0 +1,23 @@
+{
+  "moduleKey": "known-cve",
+  "cve": "CVE-2021-44228",
+  "mitre": "T1190",
+  "patterns": [
+    {
+      "name": "jndi-lookup-in-header",
+      "condition": "요청 머리글에 외부 주소를 향하는 완전한 JNDI 원격 조회 구문이 있음",
+      "evidence": "CVE-2021-44228: 기록되는 요청의 JNDI 조회가 취약한 Log4j에서 원격 조회를 일으킬 수 있음."
+    },
+    {
+      "name": "jndi-lookup-in-parameter",
+      "condition": "요청 주소나 인자에 외부 주소를 향하는 완전한 JNDI 원격 조회 구문이 있음",
+      "evidence": "CVE-2021-44228: 공격자가 제어한 로그 메시지나 인자의 JNDI 조회가 악용될 수 있음."
+    },
+    {
+      "name": "vulnerability-scanner-trace",
+      "condition": "알려진 취약점 점검 도구의 흔적이 요청에 나타남",
+      "evidence": "가상 경보 묶음에 점검 도구 흔적이 나타나며, 도구 흔적만으로 악용이나 악의를 확정할 수 없음."
+    }
+  ],
+  "caution": "CVE 이름이나 jndi 단어, 불완전한 구문, 점검 도구 이름만으로 악용을 확정하거나 차단하지 않음. T1190은 공개 애플리케이션 취약점 악용의 공격 기법 분류임."
+}
