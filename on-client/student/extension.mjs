@@ -323,6 +323,56 @@ export function createStudentView() {
       } else add('사건 설명 요청 전');
       return root;
     },
-    renderAction() { return '학생 구현 대기: 현재 사건·조치·실제 대상·사람 확인·ACK와 원천 효과·unknown을 구분하세요.'; },
+    renderAction({ status, event, actionId, target, receipt, observation, message, confirmationExpiresAt, error }) {
+      const root = document.createElement('section');
+      const add = (text) => { const p = document.createElement('p'); p.textContent = text; root.appendChild(p); };
+      const show = (label, value) => { if (value != null && value !== '') add(`${label}: ${String(value)}`); };
+      const labels = {
+        idle: '아직 미실행(idle)',
+        loading: '조치 준비 또는 결과 조회 중(loading) · 실행 결과 미확인',
+        prepared: '준비됨·미실행(prepared) · 사람 확인 필요',
+        executing: '서버에 전달 중(executing) · 결과가 아직 확인되지 않았습니다.',
+        pending: '서버 접수·처리 중(pending) · ACK는 접수 응답이며 실제 효과는 아직 확인되지 않았습니다.',
+        denied: '거절(denied)',
+        failed: '실패(failed)',
+        unknown: '결과 불명(unknown) · 성공이나 효과 없음으로 판단하지 마세요. 제공 화면에서 결과만 재조회하세요.',
+        expired: '확인 기한 지남(expired) · 제공 화면에서 다시 준비하세요.',
+        error: '요청 처리 안 됨(error)',
+      };
+      if (status === 'succeeded' && observation?.effectApplied === true) {
+        add('효과 확인(succeeded)');
+        add(`관측 시각: ${observation.observedAt ?? '확인 불가'}`);
+        add('effectApplied: true');
+      } else if (status === 'succeeded') {
+        add(labels.unknown);
+        add('전달된 상태: succeeded · 연동 시스템의 효과 확인 근거가 없습니다.');
+      } else {
+        add(Object.hasOwn(labels, status) ? labels[status] : labels.unknown);
+        if (!Object.hasOwn(labels, status)) show('전달된 상태', status);
+      }
+      show('사건 ID', event?.id);
+      if (Array.isArray(event?.evidence)) for (const item of event.evidence) show('근거 ID', item?.id);
+      show('조치 ID', actionId);
+      show('실제 대상 ID', target?.id);
+      show('실제 대상 generation', target?.generation);
+      show('requestId', receipt?.requestId);
+      show('receiptId', receipt?.receiptId);
+      show('version', receipt?.version);
+      show('확인 기한 confirmationExpiresAt', confirmationExpiresAt);
+      show('안내', message);
+      if (status === 'error') {
+        show('오류 코드', error?.code);
+        show('오류 안내', error?.message);
+      }
+      if (Array.isArray(event?.supportedActions) && event.supportedActions.length === 0) {
+        add('연동 시스템이 지원하는 조치가 없어 조치 준비 버튼이 없는 것이 정상입니다.');
+      }
+      add('AI 제안은 실행 결과가 아닙니다. 지원 조치는 제공 화면의 「조치 준비」 → 「대상과 조치를 확인했으며 집행합니다」 → 서버 전달 순서로 진행합니다.');
+      add('결과 확인은 「연동 시스템 결과만 재조회」를 사용하세요. 현재 제공 화면의 버튼 이름은 「원천 결과만 재조회」입니다.');
+      add('「조치 화면 취소」는 이미 서버에 전달된 조치의 효과를 되돌리지 않습니다. 실제 집행을 시험 삼아 요청하지 마세요.');
+      if (event?.id != null && event.id !== '') root.setAttribute('data-student-action-event', String(event.id));
+      if (receipt?.requestId != null && receipt.requestId !== '') root.setAttribute('data-student-action-request', String(receipt.requestId));
+      return root;
+    },
   };
 }
