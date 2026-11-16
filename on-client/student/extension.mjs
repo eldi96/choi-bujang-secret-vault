@@ -281,15 +281,46 @@ export function createStudentView() {
       const root = document.createElement('section');
       const add = (text) => { const p = document.createElement('p'); p.textContent = text; root.appendChild(p); };
       const value = (v) => v == null || v === '' ? '확인 불가' : String(v);
-      if (explanation?.status === 'ok' && event?.id) {
-        root.setAttribute('data-student-explanation-event', event.id);
-        add(`사건 ID: ${event.id}`);
-        add(`설명: ${value(explanation.data?.summary)}`);
-      } else if (explanation?.status === 'error') {
+      if (explanation?.status === 'error') {
         add(`사건 설명 실패: ${value(explanation.error?.code)} · ${value(explanation.error?.message)}`);
-        add('보안 기록은 그대로 유지됩니다.');
-      } else if (explanation?.status === 'loading') add('사건 설명을 요청하는 중');
-      else add('사건 설명 요청 전');
+        add('근거가 부족하거나 응답을 확인할 수 없는 경우 설명을 사용할 수 없습니다. 보안 기록은 그대로이며 과제 실패가 아닙니다.');
+      } else if (!event) add('보안 기록에서 기록을 먼저 고르세요.');
+      else if (explanation?.status === 'loading') add('사건 설명을 요청하는 중');
+      else if (explanation?.status === 'ok') {
+        const data = explanation.data;
+        const evidence = Array.isArray(event.evidence) ? event.evidence : [];
+        if (data?.executed !== false || data?.requiresHumanConfirmation !== true) {
+          add('AI 설명을 사용할 수 없습니다. 실행 여부 또는 사람 확인 조건을 확인할 수 없습니다.');
+        } else if (!event.id || !Array.isArray(data.evidenceIds) || data.evidenceIds.some((id) => !evidence.some((item) => item.id === id))) {
+          add('AI 설명을 사용할 수 없습니다. 사건의 근거 ID가 일치하지 않습니다.');
+          if (explanation.error?.code) add(`오류 코드: ${explanation.error.code}`);
+        } else {
+          root.setAttribute('data-student-explanation-event', event.id);
+          add(`사건 ID: ${event.id}`);
+          add('AI 설명(참고용)');
+          add(value(data.summary));
+          add('인용 근거');
+          if (!data.evidenceIds.length) add('인용된 근거 없음');
+          for (const id of data.evidenceIds) {
+            const item = evidence.find((entry) => entry.id === id);
+            add(`${id} — ${value(item.text)}`);
+          }
+          add('규칙');
+          if (!Array.isArray(event.rules)) add('규칙 확인 불가');
+          else if (!event.rules.length) add('규칙 없음');
+          else for (const rule of event.rules) add(`${value(rule.id)} — ${value(rule.text)}`);
+          add('확인 불가 상태');
+          const unknown = [['access', '접속'], ['session', '세션'], ['device', '기기']].filter(([key]) => event.state?.[key] === 'unknown');
+          if (!unknown.length) add('없음');
+          else for (const [, label] of unknown) add(`${label}: 확인 불가(unknown)`);
+          add('조치 제안');
+          if (!Array.isArray(data.proposals)) add('제안 확인 불가');
+          else if (!data.proposals.length) {
+            if (Array.isArray(event.supportedActions) && !event.supportedActions.length) add('연동 시스템이 지원하는 조치가 없어 제안이 없습니다(정상).');
+            else add('AI가 제안한 조치가 없습니다.');
+          } else for (const proposal of data.proposals) add(`${value(proposal.action)}: ${value(proposal.reason)} · 사람 확인이 필요하며 실행되지 않았습니다.`);
+        }
+      } else add('사건 설명 요청 전');
       return root;
     },
     renderAction() { return '학생 구현 대기: 현재 사건·조치·실제 대상·사람 확인·ACK와 원천 효과·unknown을 구분하세요.'; },
