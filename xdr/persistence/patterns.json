@@ -1,0 +1,22 @@
+{
+  "moduleKey": "persistence",
+  "mitre": ["T1543", "T1053", "T1547.001"],
+  "patterns": [
+    {
+      "name": "unsigned-new-service",
+      "condition": "평소 목록에 없는 새 서비스가 등록됐고 실행 파일에 서명이 없음",
+      "evidence": "T1543: 지속 실행을 위해 시스템 서비스를 새로 만들거나 기존 서비스를 변경할 수 있음."
+    },
+    {
+      "name": "unfamiliar-scheduled-task",
+      "condition": "평소 목록에 없는 예약 작업이 생성되거나 실행 대상으로 등록됨",
+      "evidence": "T1053: 예약 작업 기능을 이용해 프로그램을 주기적으로 또는 시작 시 실행할 수 있음."
+    },
+    {
+      "name": "unexpected-startup-folder-change",
+      "condition": "시작 폴더에 평소 목록에 없는 프로그램이 추가되거나 기존 항목이 변경됨",
+      "evidence": "T1547.001: 시작 폴더에 프로그램을 추가하면 사용자 로그인 시 실행될 수 있음."
+    }
+  ],
+  "caution": "낯선 항목이나 서명 없음만으로 악성 여부를 확정하지 않으며 평소 목록과 다른 근거를 함께 확인함."
+}

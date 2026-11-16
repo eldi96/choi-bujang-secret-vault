@@ -1,5 +1,10 @@
 # BYTE BACK 방어전 시작 틀 R5
 
+## 보너스 xdr-04 저장점
+
+- `xdr/persistence/decide.mjs`는 지속성 관련 가상 경보를 분류합니다. `npm run xdr:run -- persistence`로 재실행하며 로컬 결과는 block 8, alert 8, record 8입니다. 정상 가상 경보 8건은 모두 record였습니다.
+- `respond.mjs`는 만료되는 차단 후보와 알림 기록, 검증된 기기 연결을 가정한 로컬 판정을 제공합니다. 운영 ZTNA 연결·실제 격리와 공식 판정은 확인되지 않았습니다.
+
 ## 보너스 xdr-03 저장점
 
 - `xdr/known-cve/decide.mjs`는 CVE-2021-44228 형태의 가상 경보를 분류합니다. `npm run xdr:run -- known-cve`로 재실행하며 최근 로컬 결과는 block 8, alert 8, record 8입니다. 정상 가상 경보 8건은 모두 record였습니다.
