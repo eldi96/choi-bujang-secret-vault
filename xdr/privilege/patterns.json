@@ -1,0 +1,27 @@
+{
+  "moduleKey": "privilege",
+  "mitre": ["T1068", "T1078", "T1098.007"],
+  "patterns": [
+    {
+      "name": "unexpected-admin-group-addition",
+      "condition": "평소 권한 목록에 없는 계정이 관리자 그룹에 추가됨",
+      "evidence": "T1098.007: 계정을 관리자 그룹에 추가해 높은 권한을 유지할 수 있음."
+    },
+    {
+      "name": "unfamiliar-admin-command",
+      "condition": "계정이 평소 기록에 없는 관리자 명령을 실행함",
+      "evidence": "T1078: 공격자는 기존 계정의 자격 증명을 악용해 권한 있는 자원에 접근할 수 있음."
+    },
+    {
+      "name": "after-hours-privileged-activity",
+      "condition": "계정이 평소 업무 시간 밖에 관리자 권한을 사용함",
+      "evidence": "T1078: 기존 계정의 권한 사용은 도용 가능성을 조사할 수 있는 단서이며 시간만으로 도용을 확정할 수 없음."
+    },
+    {
+      "name": "privilege-escalation-exploitation",
+      "condition": "소프트웨어 취약점 악용으로 더 높은 권한을 얻으려는 근거가 확인됨",
+      "evidence": "T1068: 소프트웨어 취약점을 악용해 권한을 높일 수 있음."
+    }
+  ],
+  "caution": "관리자 그룹 변경, 낯선 명령, 업무 시간 밖 활동만으로 도용이나 취약점 악용을 확정하지 않음."
+}
