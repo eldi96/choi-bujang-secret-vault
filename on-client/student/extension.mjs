@@ -282,7 +282,7 @@ export function createStudentView() {
       show(root, 'lockfileVersion', data.lockfileVersion);
       show(root, 'lockfileHash', data.lockfileHash);
       show(root, 'checkedAt', data.checkedAt);
-      add(root, 'p', 'package-lock.json과 설치된 패키지 정보를 대조한 결과입니다. 알려진 항목이 없어도 패키지나 앱 전체의 안전이 보장되지는 않습니다.');
+      add(root, 'p', '조회가 준비되면 package-lock.json과 설치된 패키지 정보를 대조합니다. 알려진 항목이 없어도 패키지나 앱 전체의 안전이 보장되지는 않습니다.');
       if (!Array.isArray(data.packages)) {
         add(root, 'p', '패키지 목록 확인 불가');
         return root;
