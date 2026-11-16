@@ -1,5 +1,10 @@
 # BYTE BACK 방어전 시작 틀 R5
 
+## 보너스 xdr-06 저장점
+
+- `xdr/exfiltration/decide.mjs`는 외부 전송 관련 가상 경보를 분류합니다. `npm run xdr:run -- exfiltration`으로 재실행하며 로컬 결과는 block 10, alert 10, record 10입니다. 정상 가상 경보 10건은 모두 record였습니다.
+- `respond.mjs`는 만료되는 목적지 차단 후보와 알림 기록, 검증된 요청 연결을 가정한 로컬 판정을 제공합니다. 운영 ZTNA 연결·실제 목적지 차단과 공식 판정은 확인되지 않았습니다.
+
 ## 보너스 xdr-05 저장점
 
 - `xdr/privilege/decide.mjs`는 권한 상승 관련 가상 경보를 분류합니다. `npm run xdr:run -- privilege`로 재실행하며 로컬 결과는 block 9, alert 8, record 9입니다. 정상 가상 경보 9건은 모두 record였습니다.
