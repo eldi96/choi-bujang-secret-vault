@@ -15,7 +15,7 @@ export function decide(alert) {
   const headerMatch = lookup.test(header);
   const parameterMatch = lookup.test(url);
   const scanner = /(?:log4j[-_ ]?scan|log4shell[-_ ]?scan|점검 도구|취약점 점검)/i.test(`${header} ${url} ${description}`);
-  const ambiguous = /CVE-2021-44228|\bjndi\b|lookup-fragment|조회 형태가 잘린|취약점 이름 검색|점검 도구/i.test(`${header} ${url} ${description}`);
+  const ambiguous = /CVE-2021-44228|\bjndi\b|lookup-fragment|cve-list|log-library-note|조회 형태가 잘린|취약점 이름 검색|취약점 목록 문서|중괄호|라이브러리 이름|점검 도구/i.test(`${header} ${url} ${description}`);
   let confidence = 0.12;
   let reason = 'no_pattern_match';
   if (headerMatch || parameterMatch) {

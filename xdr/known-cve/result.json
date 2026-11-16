@@ -64,15 +64,15 @@
     },
     {
       "alertId": "kc-11",
-      "action": "record",
-      "confidence": 0.12,
-      "reason": "no_pattern_match"
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "jndi-lookup-in-parameter"
     },
     {
       "alertId": "kc-12",
-      "action": "record",
-      "confidence": 0.12,
-      "reason": "no_pattern_match"
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "jndi-lookup-in-parameter"
     },
     {
       "alertId": "kc-13",
@@ -82,9 +82,9 @@
     },
     {
       "alertId": "kc-14",
-      "action": "record",
-      "confidence": 0.12,
-      "reason": "no_pattern_match"
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "jndi-lookup-in-parameter"
     },
     {
       "alertId": "kc-15",
@@ -149,7 +149,7 @@
   ],
   "counts": {
     "block": 8,
-    "alert": 5,
-    "record": 11
+    "alert": 8,
+    "record": 8
   }
 }
